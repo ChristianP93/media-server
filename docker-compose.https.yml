@@ -1,0 +1,121 @@
+# ===========================================
+# HTTPS Override - Use with docker-compose.yml
+# ===========================================
+# Usage: docker compose -f docker-compose.yml -f docker-compose.https.yml up -d
+#
+# Adds HTTPS support via Let's Encrypt certificates using acme-companion.
+# Requires: valid DOMAIN and ACME_EMAIL in .env
+
+services:
+  # ===========================================
+  # nginx-proxy - Add HTTPS support
+  # ===========================================
+  nginx-proxy:
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./config/nginx/custom.conf:/etc/nginx/conf.d/custom.conf:ro
+      - ./config/nginx/certs:/etc/nginx/certs:ro
+      - ./config/nginx/vhost.d:/etc/nginx/vhost.d
+      - ./config/nginx/html:/usr/share/nginx/html
+    labels:
+      - "com.github.nginx-proxy.nginx"
+
+  # ===========================================
+  # ACME Companion (Let's Encrypt)
+  # ===========================================
+  acme-companion:
+    image: nginxproxy/acme-companion:latest
+    container_name: acme-companion
+    restart: unless-stopped
+    environment:
+      - DEFAULT_EMAIL=${ACME_EMAIL}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./config/nginx/certs:/etc/nginx/certs:rw
+      - ./config/nginx/vhost.d:/etc/nginx/vhost.d
+      - ./config/nginx/html:/usr/share/nginx/html
+      - ./config/nginx/acme:/etc/acme.sh
+    networks:
+      - media-network
+    depends_on:
+      - nginx-proxy
+
+  # ===========================================
+  # Service Overrides - Add LETSENCRYPT_HOST
+  # ===========================================
+
+  prowlarr:
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - VIRTUAL_HOST=prowlarr.${DOMAIN}
+      - VIRTUAL_PORT=9696
+      - LETSENCRYPT_HOST=prowlarr.${DOMAIN}
+
+  qbittorrent:
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - WEBUI_PORT=8080
+      - VIRTUAL_HOST=qbit.${DOMAIN}
+      - VIRTUAL_PORT=8080
+      - LETSENCRYPT_HOST=qbit.${DOMAIN}
+
+  sonarr:
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - VIRTUAL_HOST=sonarr.${DOMAIN}
+      - VIRTUAL_PORT=8989
+      - LETSENCRYPT_HOST=sonarr.${DOMAIN}
+
+  radarr:
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - VIRTUAL_HOST=radarr.${DOMAIN}
+      - VIRTUAL_PORT=7878
+      - LETSENCRYPT_HOST=radarr.${DOMAIN}
+
+  bazarr:
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - VIRTUAL_HOST=bazarr.${DOMAIN}
+      - VIRTUAL_PORT=6767
+      - LETSENCRYPT_HOST=bazarr.${DOMAIN}
+
+  overseerr:
+    environment:
+      - TZ=${TZ}
+      - VIRTUAL_HOST=requests.${DOMAIN}
+      - VIRTUAL_PORT=5055
+      - LETSENCRYPT_HOST=requests.${DOMAIN}
+
+  plex:
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - VERSION=docker
+      - PLEX_CLAIM=${PLEX_CLAIM:-}
+      - VIRTUAL_HOST=media.${DOMAIN}
+      - VIRTUAL_PORT=32400
+      - LETSENCRYPT_HOST=media.${DOMAIN}
+
+  tautulli:
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - VIRTUAL_HOST=stats.${DOMAIN}
+      - VIRTUAL_PORT=8181
+      - LETSENCRYPT_HOST=stats.${DOMAIN}

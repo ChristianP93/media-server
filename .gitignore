@@ -1,0 +1,28 @@
+# Environment files (contain sensitive data)
+.env
+.env.local
+.env.*.local
+scripts/setup.env
+
+# Application config directories (contain API keys, databases, etc.)
+config/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+
+# Editor/IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
