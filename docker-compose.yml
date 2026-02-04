@@ -73,6 +73,35 @@ services:
     restart: unless-stopped
 
   # ===========================================
+  # VPN (Gluetun)
+  # ===========================================
+  vpn:
+    image: qmcgaw/gluetun
+    container_name: vpn
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    environment:
+      - VPN_SERVICE_PROVIDER=protonvpn
+      - VPN_TYPE=openvpn
+      - OPENVPN_USER=${VPN_USER}
+      - OPENVPN_PASSWORD=${VPN_PASSWORD}
+      - SERVER_COUNTRIES=${VPN_COUNTRIES:-Netherlands}
+      # Proxy config for qBittorrent (must be here as qbit shares this IP)
+      - VIRTUAL_HOST=qbit.${DOMAIN}
+      - VIRTUAL_PORT=8080
+    ports:
+      - 8080:8080 # qBittorrent WebUI
+      - 6881:6881
+      - 6881:6881/udp
+    networks:
+      media-network:
+        aliases:
+          - qbittorrent # Allows Sonarr/Radarr to reach 'qbittorrent' hostname
+    restart: unless-stopped
+
+  # ===========================================
   # DOWNLOAD CLIENT
   # ===========================================
   qbittorrent:
@@ -83,17 +112,13 @@ services:
       - PGID=${PGID}
       - TZ=${TZ}
       - WEBUI_PORT=8080
-      - VIRTUAL_HOST=qbit.${DOMAIN}
-      - VIRTUAL_PORT=8080
     volumes:
       - ./config/qbittorrent:/config
       - ${ROOT_DIR}:/data
-    ports:
-      - 8080:8080
-      - 6881:6881
-      - 6881:6881/udp
-    networks:
-      - media-network
+    network_mode: "service:vpn"
+    depends_on:
+      vpn:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080"]
       interval: 30s
