@@ -84,7 +84,13 @@ services:
       - /dev/net/tun:/dev/net/tun
     environment:
       - VPN_SERVICE_PROVIDER=protonvpn
-      - VPN_TYPE=openvpn
+      - VPN_TYPE=${VPN_TYPE:-wireguard}
+      # Wireguard (ProtonVPN)
+      - WIREGUARD_PRIVATE_KEY=${VPN_WIREGUARD_PRIVATE_KEY}
+      - WIREGUARD_ADDRESSES=${VPN_WIREGUARD_ADDRESSES}
+      - WIREGUARD_PUBLIC_KEY=${VPN_WIREGUARD_PUBLIC_KEY}
+      - WIREGUARD_ENDPOINT=${VPN_WIREGUARD_ENDPOINT}
+      # OpenVPN (Alternative)
       - OPENVPN_USER=${VPN_USER}
       - OPENVPN_PASSWORD=${VPN_PASSWORD}
       - SERVER_COUNTRIES=${VPN_COUNTRIES:-Netherlands}
@@ -99,6 +105,12 @@ services:
       media-network:
         aliases:
           - qbittorrent # Allows Sonarr/Radarr to reach 'qbittorrent' hostname
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s https://google.com || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     restart: unless-stopped
 
   # ===========================================
